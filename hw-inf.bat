@@ -1,14 +1,7 @@
-rem | В принципе, этот скрипт можно с помощью другого скрипта класть на админскую шару лобого компа, в том числе и не доменного
-rem | выполнять, забирать результаты на сервер где писать еще дату сервера и получим программу, которая собирает инфо о ПК и нагружает его постоянно вися в памяти
-
-rem | Проверяем есть ли уже такой файл и если есть то таблицу стилей не пишем, а сразу прыгаем к записи конфигурации
-rem | используем встроенную переменную %~dp0 чтобы проверить в том же каталоге откуда запущен скрипт
-
+rem | If file with the same name already exists, skip writing CSS style and jump straight to config writing
 IF EXIST %~dp0%computername%.html GOTO L1
 
-rem | Пишем таблицу стилей
-rem | Так же используем встроенную переменную %~dp0 чтобы писать в тот же каталог из которого запущен скрипт
-
+rem | Write CSS style
 @ECHO ^<head^>^<style^> >> %~dp0%computername%.html
 @ECHO .div-main {width: 100%%; height: 800px; padding: 10px; margin: 10px;} >> %~dp0%computername%.html
 @ECHO .div-table {display: inline-block; width: auto; height: 790px; border-left: 1px solid black; padding: 10px; float: left; margin-top: 10px; margin-left: 10px; margin-bottom: 10px;} >> %~dp0%computername%.html
@@ -20,54 +13,40 @@ rem | Так же используем встроенную переменную
 @ECHO .div-table-cell-third {width: 128px; padding: 10px 50px 10px; border-top: 1px solid black; border-left: 1px solid black; float: left;} >> %~dp0%computername%.html
 @ECHO ^</head^>^</style^> >> %~dp0%computername%.html
 
-rem | Метка для перехода если файл уже существует, чтобы не писать дважды таблицу стилей. 
-rem | А сразу переходить к записи таблицы с конфигурацией.
+rem | Jump here if file with the same name already exists
 :L1
 
-rem | Пишем div для позиционирования
+rem | Main positioning div
 @ECHO ^<div class=^"div-main^"^> >> %~dp0%computername%.html
 
-rem | Открываем div-таблицу
+rem | Open div-table
 @ECHO ^<div class=^"div-table^"^> >> %~dp0%computername%.html
 
-rem Пишем дату и время. 
-rem Время выводим без последних трех символов. Такая точность не нужна.
-rem TODO: Добавить дату с сервера которую можно получать через net time. net time \\ushare например - даст дату с нашего сервера с убунты
-rem TODO: (Понятно, что сервер должен быть доступен по сети.)
-rem TODO: Поскольку локальная дата может быть вообще любой ввиду как севшей батарейки так и чего еще.
+rem | Write date and time
 @ECHO ^<div class=^"div-table-row^"^>Local Date^</div^> >> %~dp0%computername%.html
 @ECHO ^<div class=^"div-table-row^"^>^<div class=^"div-table-cell-zero^"^>%DATE% %TIME:~0,-3%^</div^>^</div^> >> %~dp0%computername%.html
 
-rem Пишем имя системы
+rem | Write system name
 @ECHO ^<div class=^"div-table-row^"^>Computer Name^</div^> >> %~dp0%computername%.html
 @ECHO ^<div class=^"div-table-row^"^>^<div class=^"div-table-cell^"^>%COMPUTERNAME%^</div^>^</div^> >> %~dp0%computername%.html
 
-rem Пишем инфо о материнcкой плате
-rem Пишем заголовок для информации о материнской плате
+rem | Writw header for baseboard info
 @ECHO ^<div class=^"div-table-row^"^>Motherboard^</div^> >> %~dp0%computername%.html
 
-rem Пропускаем две первые строки (это пустая строка и заголовки) и в фомате CSV 
-rem который использует запятые как разделители подстрок передаем в цикл из которого забираем нужную подстроку (или токен)
-rem Не используем для получения модели и производителя один цикл 
-rem Поскольку в моделях некоторых материнок есть запятая, что приводит к неправильному разделению токенов
-
-rem Пишем производителя
+rem | Write baseboard manufacturer
 @FOR /F "skip=2 delims=, tokens=2" %%i IN ('wmic baseboard get Manufacturer /format:csv') DO (
 @ECHO ^<div class=^"div-table-row^"^>^<div class=^"div-table-cell^"^>%%i^</div^> >> %~dp0%computername%.html
 ) 
 
-rem Пишем модель материнской платы в ту же таблицу куда писали и производителя
+rem | Write baseboard model
 @FOR /F "skip=2 delims=, tokens=2" %%i IN ('wmic baseboard get Product /format:csv') DO (
 @ECHO ^<div class=^"div-table-cell^"^>%%i^</div^>^</div^> >> %~dp0%computername%.html
 )
 
-rem Пишем инфо о процессоре.
-rem Пишем заголовок для таблицы с инфо о процессоре
+rem | Write header for CPU(s) info
 @ECHO ^<div class=^"div-table-row^"^>CPU^</div^> >> %~dp0%computername%.html
 
-rem Получаем инфо о процессоре которую представляем в формате CSV разделенном запятыми
-rem Затем используя запятые как разделители выводим все оставшиеся токены строки кроме первого токена
-rem То есть как раз информацию о процессоре, поскольку первый токен в CSV это Node то есть имя машины.
+rem | Write info on CPU(s)
 FOR /F "skip=2 delims=, tokens=1,*" %%i IN ('wmic cpu get name /format:csv') DO (
 ECHO ^<div class=^"div-table-row^"^>^<div class=^"div-table-cell^"^>%%j^</div^>^</div^> >> %~dp0%computername%.html
 )
