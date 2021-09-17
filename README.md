@@ -1,0 +1,1 @@
+# cmd-windows-hardware-info
