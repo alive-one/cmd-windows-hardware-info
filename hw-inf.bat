@@ -85,43 +85,37 @@ SET /A stor_fnl=%%j
 rem | Write info on Video Controllers
 @ECHO ^<div class=^"div-table-row^"^>Video Adapters^</div^> >> %~dp0%computername%.html
 
-rem | Проверяем установлен ли драйвер на видеокарту и если нет то пишем что драйвера нет - НЕ РАБОТАЕТ, попробовать в цикле.
-rem | и сразу прыгаем к следующей железке
-wmic path win32_VideoController get Name | findstr "No Instance(s) Available"
-IF %ERRORLEVEL%==0 (ECHO ^<div class=^"div-table-cell^"^>NO DRIVER BITCH ^</div^> >> %~dp0%computername%.html&GOTO L6)
-
+rem | Enable variables change in cycle
 Setlocal EnableDelayedExpansion
 
-rem | Получаем название видеокарт и Device ID
+rem | Get VideoControllers name and DeviceID
 FOR /F "skip=2 tokens=2,3 delims=," %%a IN ('wmic path win32_VideoController get name^, PNPDeviceID /format:csv') DO (
 SET vc_name=%%a
 
-rem | Получили Device ID из wmic и отфильтровали от мусора
+rem | Filter out Device ID to get rid of & simbols 
 FOR /F "tokens=2 delims=^&amp;" %%c IN ("%%b") DO (
 
-rem | Ищем в реестре ветку где встречается вхождение Device ID
+rem | Search registry branch where stored info on Video Adapters for certain registry key where Device ID of each VideoAdapter stored
 FOR /F %%d IN ('REG QUERY HKLM\SYSTEM\CurrentControlSet\Control\Class\{4D36E968-E325-11CE-BFC1-08002BE10318} /f %%c /s /t REG_SZ ^| find "{"') DO (
 
-rem | Ищем в той же ветке где есть вхождение device id количество памяти ВК.
-rem | Используем powershell для пребразования hex значения в дестичное
-rem | Делим тоже с помощью powershell чтобы преобразовать в Мб
-rem | Если не найден параметр qwMemorySize значит у нас не дискретная ВК а встройка
+rem | Search memory size entry in the same registry key where was found Device ID
+rem | Use powershell to convert hex value to decimal dnd divide by 1048576 to get size in Mb
 FOR /F "tokens=3" %%e IN ('REG QUERY ^"%%d^" /f HardwareInformation.qwMemorySize /t REG_QWORD ^| find "0x"') DO (
 SET vc_mem=powershell [uint64]^('%%e'^)/1048576
 )
 )
 )
-rem | Пишем в таблицу название видеокарты
+rem | Write VideoAdapter name in file
 ECHO ^<div class=^"div-table-row^"^>^<div class=^"div-table-cell^"^>!vc_name!^</div^> >> %~dp0%computername%.html
 
-rem | Пишем в таблицу количество памяти видеокарты
-rem | Если токен не содержит инфо о памяти, то выводим просто DVMT в графе память.
+rem | Write amount of memory in file
+rem | If variable vc_mem less than 1 echo DVMT
 ECHO ^<div class=^"div-table-cell^"^> >> %~dp0%computername%.html
 IF !vc_mem! LSS 1 (SET vc_mem=N/A or DVMT&ECHO !vc_mem! >> %~dp0%computername%.html) ELSE (!vc_mem! >> %~dp0%computername%.html&ECHO Mb >> %~dp0%computername%.html)
 ECHO ^</div^>^</div^> >> %~dp0%computername%.html
 )
 
-rem | Отключаем возможность изменения переменных внутри цикла.
+rem | Disable variable changing in cycle
 Setlocal DisableDelayedExpansion
 
 rem Пишем заголовок для информации о сетевухах
