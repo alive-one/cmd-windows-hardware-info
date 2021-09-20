@@ -118,25 +118,22 @@ ECHO ^</div^>^</div^> >> %~dp0%computername%.html
 rem | Disable variable changing in cycle
 Setlocal DisableDelayedExpansion
 
-rem Пишем заголовок для информации о сетевухах
+rem | Write info on network adapters
 @ECHO ^<div class=^"div-table-row^"^>Network Adapters^</div^> >> %~dp0%computername%.html
 
-rem Поскольку сетевух может быть несколько, опять используем цикл.
-rem Получаем строку с маком и моделью сетевухи 
-rem Затем сначала выводим с помощью неявной переменной %%q все оставшиеся токены строки, кроме первого, это как раз название сетевухи
-rem затем с помощью переменной %%p выводим первый токен - это мак 
+rem | Write info on network adapters MAC-address and model
 @FOR /F "tokens=1*" %%p IN ('wmic NIC where PhysicalAdapter^=true get macaddress^,name ^| findstr [0-9]') DO (
 @ECHO ^<div class=^"div-table-row^"^>^<div class=^"div-table-cell-sec^"^>%%q^</div^> >> %~dp0%computername%.html
 @ECHO ^<div class=^"div-table-cell^"^>%%p^</div^>^</div^> >> %~dp0%computername%.html
 )
 
-rem Закрываем таблицу с основной инфой о железе (потом это надо перенести в самый конец).
+rem | Close table with major info on hradware
 @ECHO ^</div^> >> %~dp0%computername%.html
 
-rem Открываем вторую таблицу позиционирования 
+rem | Open second table with info on Windows and network connections
 @ECHO ^<div class=^"div-table-sec^"^> >> %~dp0%computername%.html
 
-rem | Пишем информацию об ОС
+rem | Write info on Operating System
 @ECHO ^<div class=^"div-table-row^"^>Operating System^</div^> >> %~dp0%computername%.html
 @ECHO ^<div class=^"div-table-row^"^>^<div class=^"div-table-cell^"^> >> %~dp0%computername%.html
 wmic os get caption | findstr "Windows" >> %~dp0%computername%.html
@@ -145,28 +142,24 @@ wmic os get caption | findstr "Windows" >> %~dp0%computername%.html
 wmic os get version | findstr [0-9] >> %~dp0%computername%.html
 @ECHO ^</div^>^</div^> >> %~dp0%computername%.html
 
-rem | Получаем инфу о сетевых подключениях
-rem | В цикле для каждой сетевухи как физического устройства получаем мак и название соединения
+rem | Get mac address and connection name 
 @FOR /F "skip=2 delims=, tokens=2,3" %%i IN ('wmic nic where PhysicalAdapter^=true get MACAddress^, NetConnectionID /format:csv') DO (
 
-rem | Фильтруем по полученным макам и пишем на каждый мак название соединения как заголовок таблицы
+rem | Use connection name as header for detailed info on each connection
 @ECHO  ^<div class=^"div-table-row^"^>%%j^</div^> >> %~dp0%computername%.html
 
-rem | Для каждого соединения пишем мак
+rem | Write MAC-address
 @ECHO ^<div class=^"div-table-row^"^>^<div class=^"div-table-cell-third^"^>MAC Address^</div^>^<div class=^"div-table-cell^"^>%%i^</div^>^</div^> >> %~dp0%computername%.html
 
-rem | ДЛя каждого соединения пишем шлюз, IP адрес, маску подсети
+rem | Get Default Gateway, IP address and Subnet Mask
 @FOR /F "skip=2 delims=,{} tokens=2,3,4" %%a IN ('wmic nicconfig where ^(ipenabled^="true" AND macaddress^="%%i"^) get DefaultIPGateway^, IPAddress^, IPSubnet /format:csv') DO (
 
-rem | Избавляемся от IPv6 адреса если он представлен в выводе. 
-rem | Перебираем в цикле значения переменной с информацией об IP адресе используя ; как делитель
-rem | поскольку команда nicconfig выводит токены разделенные запятыми, а подтокены разделены точкой с запятой
-rem | то для перебора значений подтокена используем как делитель как раз точку с запятой
+rem | Get rid of IPv6 address
 @FOR /F "delims=; tokens=1" %%z IN (^"%%b^") DO (
 @ECHO ^<div class=^"div-table-row^"^>^<div class=^"div-table-cell-third^"^>IP Address^</div^>^<div class=^"div-table-cell^"^>%%z^</div^>^</div^> >> %~dp0%computername%.html
 )
 
-rem | Избавляемся от разрядности маски подобным способом.
+rem | Get rid of unnecessary info in Subnet Mask
 @FOR /F "delims=; tokens=1" %%y IN (^"%%c^") DO (
 @ECHO ^<div class=^"div-table-row^"^>^<div class=^"div-table-cell-third^"^>Subnet^</div^> ^<div class=^"div-table-cell^"^>%%y^</div^>^</div^> >> %~dp0%computername%.html
 )
@@ -175,11 +168,8 @@ rem | Избавляемся от разрядности маски подобн
 )
 )
 
-rem Закрываем вторую таблицу позицонирования
+rem | Close second table
 @ECHO ^</div^> >> %~dp0%computername%.html
 
-rem Закрываем внешний главный div позицонирования
+rem | Close main positioning div
 @ECHO ^</div^> >> %~dp0%computername%.html
-
-pause
-rem добавить внизу в строку все, подписать "Для базы уист", чтобы туда можно было копировать просто копипастом. А потом просто повершел скриптом писать в скуль. А может в текстовичко писать. И потом сделать папки по датам и генерировать станички скриптом и ращдавать простым сервером питона с линуха.
