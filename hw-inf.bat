@@ -51,20 +51,17 @@ FOR /F "skip=2 delims=, tokens=1,*" %%i IN ('wmic cpu get name /format:csv') DO 
 ECHO ^<div class=^"div-table-row^"^>^<div class=^"div-table-cell^"^>%%j^</div^>^</div^> >> %~dp0%computername%.html
 )
 
-rem Пишем инфо об оперативной памяти
-rem Пишем заголовок таблицы
+rem | Write info on operating memory
 @ECHO ^<div class=^"div-table-row^"^>RAM^</div^> >> %~dp0%computername%.html
 
-rem разрешщаем изменять переменные внутри цикла для коректного вычисления объема ОЗУ внутри цикла
+rem | Allow changing variables in cycle
 Setlocal EnableDelayedExpansion
 
-rem Пишем инфо о слоте, емкости и скорости
+rem | Write info on RAM slot, size and speed 
 @FOR /F "tokens=1,2,3" %%a IN ('wmic memorychip get capacity^,devicelocator^,speed ^| findstr [0-9]') DO (
 @ECHO ^<div class=^"div-table-row^"^>^<div class=^"div-table-cell^"^>%%b^</div^> >> %~dp0%computername%.html
 
-rem Во вложенном цикле перебираем значения переменной с объемом каждого слота ОЗУ в байтах
-rem и делим на 1048576 чтобы получить значение в мегабайтах. 
-rem Используем powershell для деления поскольку cmd такие числа не осиливает.
+rem | Use powershell in inner cycle to divide each token of cycle by 1048576 to get size in Mb
 @FOR /F %%a IN ('powershell %%a/1048576') DO (
 SET /A mem_fnl=%%a
 @ECHO ^<div class=^"div-table-cell^"^>!mem_fnl! Mb^</div^> >> %~dp0%computername%.html
@@ -72,16 +69,11 @@ SET /A mem_fnl=%%a
 )
 )
 
-rem Получаем информацию о накопителях 
-rem Открываем строку таблицы и пишем заголовок для подраздела с накопителями
+rem | Write info on storage devices
 @ECHO ^<div class=^"div-table-row^"^>Storage Devices^</div^> >> %~dp0%computername%.html
 
-rem Испольщуем вывод в формате csv поскольку так нужные нам значения разделены запятыми 
-rem И даже названия с пробелами можно брать как одинарные токены, что нам и нужно в случае с названием дисков.
-rem Проускаем две строки поскольку вывод CSV пишет еще пустую строку помимо заголовка.
-rem Для всех устройств хранения, которые система и, получаем в цикле модель и размер и пишем в таблицу
-rem Затем размер с помощью powershell делим на 1000000000 чтобы привести в более удобочитаемый вид - в гигабайты.
-
+rem | Get size model and status for every fixed hard disk media storage device
+rem | Use powershell to divide size by 1000000000 to get Gb
 @FOR /F "skip=2 delims=, tokens=2-4" %%i IN ('wmic diskdrive where ^(MediaType^="Fixed hard disk media"^) get model^,size^,status /format:csv') DO (
 @ECHO ^<div class=^"div-table-row^"^>^<div class=^"div-table-cell^"^>%%i^</div^> >> %~dp0%computername%.html
 @FOR /F %%j IN ('powershell %%j/1000000000') DO (
@@ -90,7 +82,7 @@ SET /A stor_fnl=%%j
 @ECHO ^<div class=^"div-table-cell^"^>%%k^</div^>^</div^> >> %~dp0%computername%.html
 ))
 
-rem | Пишем заголовок для информации о видеокартах
+rem | Write info on Video Controllers
 @ECHO ^<div class=^"div-table-row^"^>Video Adapters^</div^> >> %~dp0%computername%.html
 
 rem | Проверяем установлен ли драйвер на видеокарту и если нет то пишем что драйвера нет - НЕ РАБОТАЕТ, попробовать в цикле.
