@@ -232,5 +232,5 @@ rem | Close second div-table
 rem | Close main positioning div
 @ECHO ^</div^> >> %~dp0%computername%.html
 
-rem | Pause the script and wait for meatbag interaction
+rem | Pause the script and wait for meatbag interaction :-)
 pause
