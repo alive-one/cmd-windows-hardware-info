@@ -129,7 +129,7 @@ SET vc_mem=powershell [uint64]^('%%e'^)/1048576
 rem | Write GPU name 
 ECHO ^<div class=^"div-table-row^"^>^<div class=^"div-table-cell^"^>!vc_name!^</div^> >> %~dp0%computername%.html
   
-rem | Write GOU's memory size
+rem | Write GPU's memory size
 rem | If memory size not defined write "N/A or DVMT" (For in most cases it is iGPU)
 ECHO ^<div class=^"div-table-cell^"^> >> %~dp0%computername%.html
 IF !vc_mem! LSS 1 (SET vc_mem=N/A or DVMT&ECHO !vc_mem! >> %~dp0%computername%.html) ELSE (!vc_mem! >> %~dp0%computername%.html&ECHO Mb >> %~dp0%computername%.html)
