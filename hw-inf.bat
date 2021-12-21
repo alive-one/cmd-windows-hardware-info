@@ -134,6 +134,10 @@ rem | If memory size not defined write "N/A or DVMT" (For in most cases it is iG
 ECHO ^<div class=^"div-table-cell^"^> >> %~dp0%computername%.html
 IF !vc_mem! LSS 1 (SET vc_mem=N/A or DVMT&ECHO !vc_mem! >> %~dp0%computername%.html) ELSE (!vc_mem! >> %~dp0%computername%.html&ECHO Mb >> %~dp0%computername%.html)
 ECHO ^</div^>^</div^> >> %~dp0%computername%.html
+rem | Set vc_mem to 0 before next cycle iteration
+rem | otherwise IF condition may cause error 
+rem | for it will use vc_mem value from previous cycle iteration
+SET vc_mem=0
 )
   
 rem | Disable variable change in cycle
