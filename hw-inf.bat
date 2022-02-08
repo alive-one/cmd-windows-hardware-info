@@ -10,7 +10,9 @@ rem | Write CSS style
 @ECHO .div-table-cell-date {width: auto; padding: 10px 40px 10px; border-top: 1px solid black; border-left: 1px solid black; float: left; color: red;} >> %~dp0%computername%.html
 @ECHO .div-table-cell-pcname {width: auto; padding: 10px 40px 10px; border-top: 1px solid black; border-left: 1px solid black; float: left;} >> %~dp0%computername%.html
 @ECHO .div-table-cell-cpu {width: auto; padding: 10px 20px 10px; border-top: 1px solid black; border-left: 1px solid black; float: left;} >> %~dp0%computername%.html
+@ECHO .div-table-cell-stor-sn {width: auto; padding: 10px 20px 10px; border-top: 1px solid black; border-left: 1px solid black; float: left;} >> %~dp0%computername%.html
 @ECHO .div-table-cell {width: 180px; padding: 10px 20px 10px; border-top: 1px solid black; border-left: 1px solid black; float: left;} >> %~dp0%computername%.html
+
 @ECHO ^</head^>^</style^> >> %~dp0%computername%.html
   
 rem | Jump here if file with the same name already exists
@@ -85,21 +87,24 @@ SET /A mem_fnl=%%a
 )
 )
   
-rem | Get info on storage devices
-rem | Write header
+rem | Get Info on FIXED Storage Devices (It will not display removable media like USB Stick)
+rem | Write header for info on fixed storage devices
 @ECHO ^<div class=^"div-table-row^"^>Storage Devices^</div^> >> %~dp0%computername%.html
-  
-rem | Use CSV output so that necessary tokens divided by commas
-rem | Skip two first lines and first token in third line for in CSV it is headers and node name accordingly 
-rem | For all fixed storage devices get model, size and status
-rem | Size token divide by 1000000000 using powershell to get size in Gb
-@FOR /F "skip=2 delims=, tokens=2-4" %%i IN ('wmic path Win32_DiskDrive where ^(MediaType^="Fixed hard disk media"^) get model^,size^,status /format:csv') DO (
+    
+rem | Use CSV output so that neccessary values are divided by commas
+rem | So that even storage deivices names with spaces will be prosessed corectly
+rem | Skip two strings for CSV output use two blank strings as headers
+rem | For all fixed storage devices get model, size, status, serial number and write to div-table
+rem | Use powershell to divide size token by 1000000000 so that we have readable output in Gb
+@FOR /F "skip=2 delims=, tokens=2-5" %%i IN ('wmic diskdrive where ^(MediaType^="Fixed hard disk media"^) get model^,serialnumber^,size^,status /format:csv') DO (
 @ECHO ^<div class=^"div-table-row^"^>^<div class=^"div-table-cell^"^>%%i^</div^> >> %~dp0%computername%.html
-@FOR /F %%j IN ('powershell %%j/1000000000') DO (
-SET /A stor_fnl=%%j
-@ECHO ^<div class=^"div-table-cell^"^>!stor_fnl! Gb^</div^> >> %~dp0%computername%.html
-@ECHO ^<div class=^"div-table-cell^"^>%%k^</div^>^</div^> >> %~dp0%computername%.html
-))
+@FOR /F %%k IN ('powershell %%k/1000000000') DO (
+SET /A stor_fnl=%%k
+@ECHO ^<div class=^"div-table-cell-stor-sn^"^>s/n: %%j^</div^>^</div^> >> %~dp0%computername%.html
+@ECHO ^<div class=^"div-table-row^"^>^<div class=^"div-table-cell^"^>!stor_fnl! Gb^</div^> >> %~dp0%computername%.html
+@ECHO ^<div class=^"div-table-cell^"^>%%l^</div^>^</div^> >> %~dp0%computername%.html
+)
+)
   
 rem | Write info in GPUs
 @ECHO ^<div class=^"div-table-row^"^>Video Adapters^</div^> >> %~dp0%computername%.html
@@ -132,6 +137,7 @@ ECHO ^<div class=^"div-table-row^"^>^<div class=^"div-table-cell^"^>!vc_name!^</
 rem | Write GPU's memory size
 rem | If memory size not defined write "N/A or DVMT" (For in most cases it is iGPU)
 ECHO ^<div class=^"div-table-cell^"^> >> %~dp0%computername%.html
+ECHO vc mem is !vc_mem!
 IF !vc_mem! LSS 1 (SET vc_mem=N/A or DVMT&ECHO !vc_mem! >> %~dp0%computername%.html) ELSE (!vc_mem! >> %~dp0%computername%.html&ECHO Mb >> %~dp0%computername%.html)
 ECHO ^</div^>^</div^> >> %~dp0%computername%.html
 rem | Set vc_mem to 0 before next cycle iteration
@@ -176,6 +182,41 @@ rem | Write Windows activation status
 @FOR /F "tokens=* skip=1" %%i IN ('cscript.exe /nologo c:\windows\system32\slmgr.vbs /xpr') DO (
 @ECHO ^<div class=^"div-table-row^"^>^<div class=^"div-table-cell^"^>Activation^</div^>^<div class=^"div-table-cell^"^>%%i^</div^>^</div^> >> %~dp0%computername%.html
 )
+
+rem | Write Info on MS Office (if any) version and activation status
+FOR /F "tokens=2,3 delims=," %%i IN ('wmic path Win32_Product get InstallLocation^, Name /format:csv ^| findstr "Standard Professional"') DO (
+SET off_path=%%i
+SET off_name=%%j
+)
+
+rem | CD to Office Dir
+pushd %off_path%
+
+rem | Get Path to OSPP.VBS and rewrite off_path variable
+rem | SO thet it contains path to ospp.vbs instead of path to MSO dir
+FOR /F "tokens=2*" %%i IN ('dir /s ospp.vbs ^| find "\"') DO (
+SET off_path=%%j
+)
+
+rem | CD to OSPP.VBS dir
+pushd %off_path%
+
+rem | Catch exception if no OSPP.VBS exists
+rem | Then goto next info block
+IF %ERRORLEVEL% EQU 1 (GOTO L4)
+
+rem | 
+FOR /F "skip=3 tokens=2 delims=:" %%i IN ('cscript ospp.vbs /dstatus ^| find "-"') DO (
+SET act_stat=%%i
+)
+
+rem | Write info on MS Office
+ECHO ^<div class=^"div-table-row^"^>MS Office^</div^> >> %~dp0%computername%.html
+ECHO ^<div class=^"div-table-row^"^>^<div class=^"div-table-cell^"^>Office Edition^</div^>^<div class=^"div-table-cell^"^>%off_name%^</div^>^</div^> >> %~dp0%computername%.html
+ECHO ^<div class=^"div-table-row^"^>^<div class=^"div-table-cell^"^>Activation Status^</div^>^<div class=^"div-table-cell^"^>%act_stat:~5,8%^</div^>^</div^> >> %~dp0%computername%.html
+
+rem | Jump here if no MS Office installed
+:L4
 
 rem | Write info on network connectors
 rem | Allow to change variables in cycle 
@@ -236,5 +277,5 @@ rem | Close second div-table
 rem | Close main positioning div
 @ECHO ^</div^> >> %~dp0%computername%.html
 
-rem | Pause the script and wait for meatbag interaction :-)
+rem | Wait for human interaction
 pause
