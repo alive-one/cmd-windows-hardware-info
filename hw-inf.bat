@@ -1,3 +1,6 @@
+rem | Enable to change variables in cycle
+Setlocal EnableDelayedExpansion
+
 rem | If file with the same name already exists, skip writing CSS style and jump to config writing
 IF EXIST %~dp0%computername%.html GOTO L1
   
@@ -69,10 +72,6 @@ rem | Write info on RAM
 rem | Write header
 @ECHO ^<div class=^"div-table-row^"^>RAM^</div^> >> %~dp0%computername%.html
   
-rem | Enable to change variables within FOR cycle
-rem | We're gonna need that to calculate and properly output memory size in Mb
-Setlocal EnableDelayedExpansion
-  
 rem | Write info on SLOT, SIZE and SPEED of each memory module
 @FOR /F "tokens=1,2,3" %%a IN ('wmic path Win32_PhysicalMemory get capacity^,devicelocator^,speed ^| findstr [0-9]') DO (
 @ECHO ^<div class=^"div-table-row^"^>^<div class=^"div-table-cell^"^>%%b^</div^> >> %~dp0%computername%.html
@@ -109,9 +108,6 @@ SET /A stor_fnl=%%k
 rem | Write info in GPUs
 @ECHO ^<div class=^"div-table-row^"^>Video Adapters^</div^> >> %~dp0%computername%.html
 
-rem | Allow change variable in cycle 
-Setlocal EnableDelayedExpansion
-  
 rem | Get GPU name and DeviceID
 FOR /F "skip=2 tokens=2,3 delims=," %%a IN ('wmic path win32_VideoController get name^, PNPDeviceID /format:csv') DO (
 SET vc_name=%%a
@@ -145,10 +141,7 @@ rem | otherwise IF condition may cause error
 rem | for it will use vc_mem value from previous cycle iteration
 SET vc_mem=0
 )
-  
-rem | Disable variable change in cycle
-Setlocal DisableDelayedExpansion
-  
+
 rem | Write info on network adapters
 @ECHO ^<div class=^"div-table-row^"^>Network Adapters^</div^> >> %~dp0%computername%.html
   
@@ -219,9 +212,6 @@ rem | Jump here if no MS Office installed
 :L4
 
 rem | Write info on network connectors
-rem | Allow to change variables in cycle 
-Setlocal EnableDelayedExpansion
-
 rem | Get mac address, Connection name and Connection status in CSV format
 @FOR /F "skip=2 tokens=2-4 delims=," %%i IN ('wmic path Win32_NetworkAdapter where PhysicalAdapter^=true get MACAddress^, NetConnectionID^, NetConnectionStatus /format:csv') DO (
 
@@ -277,5 +267,5 @@ rem | Close second div-table
 rem | Close main positioning div
 @ECHO ^</div^> >> %~dp0%computername%.html
 
-rem | Wait for human interaction
+rem | Wait for user interaction
 pause
